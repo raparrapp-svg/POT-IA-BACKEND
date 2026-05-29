@@ -143,7 +143,7 @@ async def query_db(req: QueryRequest, db: AsyncSession = Depends(get_db)):
                   f"Genera el SQL para responder esta pregunta. "
 		  f"IMPORTANTE: cuando uses ST_AsGeoJSON(geom), "
 		  f"siempre transforma primero a WGS84 así: "
-		  f"ST_AsGeoJSON(ST_Transform(ST_SetSRID(geom, 9377), 4326)) AS geojson
+              f"ST_AsGeoJSON(ST_Transform(ST_SetSRID(geom, 9377), 4326)) AS geojson")
     try:
         sql_raw = await call_groq(
             [{"role":"user","content":sql_prompt}],
