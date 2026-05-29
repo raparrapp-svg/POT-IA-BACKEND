@@ -28,10 +28,14 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    async def lifespan(app: FastAPI):
     """Inicializa la BD al arrancar."""
     logger.info("Iniciando POT-IA Backend v%s", settings.app_version)
-    await init_db()
-    logger.info("Base de datos inicializada")
+    try:
+        await init_db()
+        logger.info("Base de datos inicializada")
+    except Exception as e:
+        logger.warning("init_db omitido: %s", e)
     yield
     logger.info("Apagando POT-IA Backend")
 
