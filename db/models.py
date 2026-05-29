@@ -43,7 +43,7 @@ class PredioAmenaza(Base):
 
     # Geometría del predio (WGS84)
     geom: Mapped[Geometry] = mapped_column(
-        Geometry(geometry_type="GEOMETRY", srid=9377), nullable=True
+    Geometry(geometry_type="GEOMETRY", srid=4326), nullable=True
     )
 
     # Resultado del cruce

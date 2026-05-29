@@ -196,7 +196,7 @@ async def save_analysis_to_postgis(
             tipo=row.get("tipo"),
             zona=row.get("zona"),
             area_terreno=row.get("area_terreno"),
-            geom=f"SRID=9377;{wkt}" if wkt else None,
+            geom=f"SRID=4326;{wkt}" if wkt else None,
             nivel_amenaza=row.get("nivel_amenaza"),
             tipo_amenaza=row.get("tipo_amenaza"),
             capa_amenaza=row.get("tipo_amenaza"),
