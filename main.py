@@ -28,7 +28,6 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    async def lifespan(app: FastAPI):
     """Inicializa la BD al arrancar."""
     logger.info("Iniciando POT-IA Backend v%s", settings.app_version)
     try:
