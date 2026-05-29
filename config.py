@@ -44,10 +44,14 @@ class Settings(BaseSettings):
 
     @property
     def database_url(self) -> str:
-        return (
-            f"postgresql+asyncpg://{self.db_user}:{self.db_password}"
-            f"@{self.db_host}:{self.db_port}/{self.db_name}"
-        )
+    	import os
+    	url = os.environ.get("DATABASE_URL", "")
+    	if url:
+        	return url.replace("postgresql://", "postgresql+asyncpg://")
+    	return (
+        	f"postgresql+asyncpg://{self.db_user}:{self.db_password}"
+        	f"@{self.db_host}:{self.db_port}/{self.db_name}"
+    	)
 
     @property
     def database_url_sync(self) -> str:
