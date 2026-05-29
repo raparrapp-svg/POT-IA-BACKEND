@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>POT-IA v3 — Análisis Territorial Colombia</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@3/dist/maplibre-gl.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#fff;--bg2:#f8f7f4;--bg3:#f0eeeb;
+  --bd:#e0dfdc;--bd2:#ccc;
+  --txt:#111;--txt2:#555;--txt3:#888;
+  --blue:#378ADD;--blue-d:#0C447C;--blue-l:#E6F1FB;
+  --green:#1D9E75;--green-l:#EAF3DE;--green-d:#085041;
+  --amber:#BA7517;--amber-l:#FAEEDA;
+  --red:#E24B4A;--red-l:#FCEBEB;--red-d:#A32D2D;
+  --orange:#D85A30;
+}
+body{font-family:system-ui,sans-serif;background:#e8e7e3;height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#app{width:1100px;max-width:100vw;height:680px;display:flex;flex-direction:column;border:0.5px solid var(--bd);border-radius:12px;overflow:hidden;background:var(--bg);box-shadow:0 6px 32px rgba(0,0,0,.12)}
+
+/* HEADER */
+#hdr{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--bg2);border-bottom:0.5px solid var(--bd);flex-shrink:0}
+.hdr-t{font-size:14px;font-weight:500;color:var(--txt)}
+.pill{font-size:10px;padding:2px 9px;border-radius:20px;font-weight:500}
+.pill-blue{background:var(--blue-l);color:var(--blue-d)}
+.pill-green{background:var(--green-l);color:var(--green-d)}
+.pill-red{background:var(--red-l);color:var(--red-d)}
+
+/* BODY */
+#body{display:flex;flex:1;overflow:hidden}
+
+/* LEFT PANEL */
+#lp{width:210px;flex-shrink:0;border-right:0.5px solid var(--bd);display:flex;flex-direction:column;overflow:hidden}
+.lp-sec{padding:10px 12px;border-bottom:0.5px solid var(--bd);flex-shrink:0}
+.lbl{font-size:10px;color:var(--txt3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;font-weight:500}
+input[type=text],select{width:100%;font-size:12px;padding:5px 8px;border:0.5px solid var(--bd2);border-radius:6px;background:var(--bg);color:var(--txt);margin-bottom:4px}
+.btn{width:100%;padding:7px;background:var(--bg3);border:0.5px solid var(--bd2);border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;color:var(--txt);margin-top:3px;display:flex;align-items:center;justify-content:center;gap:5px}
+.btn:hover{background:var(--bd)}.btn:disabled{opacity:.45;cursor:default}
+.btn-primary{background:var(--blue-l);border-color:var(--blue);color:var(--blue-d)}
+.btn-primary:hover{background:#B5D4F4}
+.ly-row{display:flex;align-items:center;gap:7px;padding:4px 0;font-size:12px;color:var(--txt2);cursor:pointer;user-select:none}
+.ly-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.ly-eye{margin-left:auto;font-size:12px;opacity:.7}
+#lp-stats{flex:1;overflow-y:auto;padding:10px 12px}
+.stat-row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:0.5px solid var(--bd)}
+.stat-row:last-child{border:none}
+.stat-v{font-weight:500}
+
+/* MAP */
+#map-wrap{flex:1;min-width:0;position:relative}
+#pot-map{width:100%;height:100%}
+.map-badge{position:absolute;top:8px;left:8px;z-index:10;background:rgba(255,255,255,.92);border:0.5px solid var(--bd);border-radius:6px;padding:4px 9px;font-size:11px;color:var(--txt2)}
+
+/* RIGHT PANEL */
+#rp{width:250px;flex-shrink:0;border-left:0.5px solid var(--bd);display:flex;flex-direction:column;overflow:hidden}
+.tabs{display:flex;flex-shrink:0;border-bottom:0.5px solid var(--bd);background:var(--bg2)}
+.tab{flex:1;padding:7px 2px;font-size:10px;text-align:center;cursor:pointer;color:var(--txt3);background:transparent;border:none;border-bottom:2px solid transparent}
+.tab.on{color:var(--txt);font-weight:500;border-bottom:2px solid var(--blue);background:var(--bg)}
+.tc{flex:1;overflow-y:auto;padding:7px}
+.al-item{padding:8px 10px;border-radius:6px;margin-bottom:6px;font-size:11px;line-height:1.55}
+.al-alta{background:var(--red-l);border-left:3px solid var(--red)}
+.al-media{background:var(--amber-l);border-left:3px solid var(--amber)}
+.al-ok{background:var(--green-l);border-left:3px solid var(--green)}
+.al-t{font-weight:500;font-size:12px;color:var(--txt);margin-bottom:3px}
+.al-nr{font-size:10px;color:var(--txt3);font-style:italic;margin-top:3px}
+.al-ac{font-size:11px;color:var(--txt2);margin-top:4px;padding-top:4px;border-top:0.5px solid rgba(0,0,0,.08)}
+
+/* CHAT */
+#chat-msgs{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:5px}
+.msg-u{max-width:88%;padding:7px 10px;border-radius:8px 8px 2px 8px;font-size:12px;line-height:1.5;background:var(--blue-l);color:#042C53;align-self:flex-end}
+.msg-a{max-width:96%;padding:7px 10px;border-radius:8px 8px 8px 2px;font-size:12px;line-height:1.55;background:var(--bg2);color:var(--txt);align-self:flex-start}
+.chat-in{padding:7px 9px;border-top:0.5px solid var(--bd);display:flex;gap:5px;flex-shrink:0}
+.chat-in input{flex:1;font-size:12px;padding:5px 8px;border:0.5px solid var(--bd2);border-radius:6px;background:var(--bg);color:var(--txt)}
+.chat-in button{padding:5px 10px;border:0.5px solid var(--bd2);border-radius:6px;cursor:pointer;background:var(--bg3);color:var(--txt);font-size:13px}
+
+/* STATUS */
+#status{padding:4px 12px;font-size:10px;color:var(--txt3);background:var(--bg2);border-top:0.5px solid var(--bd);flex-shrink:0;display:flex;align-items:center;gap:8px}
+#prog-bar{height:2px;background:var(--blue);border-radius:1px;transition:width .4s;width:0;margin-left:auto;min-width:0;max-width:80px}
+
+/* UPLOAD ZONE */
+.upload-zone{border:1.5px dashed var(--bd2);border-radius:8px;padding:10px;text-align:center;cursor:pointer;font-size:11px;color:var(--txt3);margin-bottom:5px}
+.upload-zone:hover{border-color:var(--blue);color:var(--blue-d)}
+.field-list{max-height:100px;overflow-y:auto;border:0.5px solid var(--bd);border-radius:6px;padding:3px;margin-bottom:5px}
+.fi{display:flex;align-items:center;gap:5px;padding:2px 4px;font-size:11px;color:var(--txt2);border-radius:4px;cursor:pointer}
+.fi:hover{background:var(--bg3)}
+.fi input{width:12px;height:12px}
+
+/* REPORTE */
+.rpt-h{font-size:12px;font-weight:500;color:var(--txt);margin:8px 0 4px;border-bottom:0.5px solid var(--bd);padding-bottom:2px}
+.rpt-table{width:100%;border-collapse:collapse;font-size:10px;margin-bottom:6px}
+.rpt-table th{background:var(--bg2);padding:3px 5px;text-align:left;font-weight:500;border:0.5px solid var(--bd)}
+.rpt-table td{padding:3px 5px;border:0.5px solid var(--bd)}
+</style>
+</head>
+<body>
+<div id="app">
+
+<div id="hdr">
+  <span style="font-size:18px">🗺</span>
+  <span class="hdr-t">POT-IA v3 — Análisis Territorial EOT</span>
+  <span class="pill pill-blue" id="mode-pill">Sin datos</span>
+  <span class="pill pill-green" id="muni-pill" style="display:none"></span>
+  <span style="flex:1"></span>
+  <span style="font-size:11px;color:var(--txt3)" id="feat-count"></span>
+</div>
+
+<div id="body">
+<!-- LEFT -->
+<div id="lp">
+  <div class="lp-sec">
+    <div class="lbl">Municipio</div>
+    <input type="text" id="f-mun" placeholder="Ej: MAGANGUÉ" style="text-transform:uppercase">
+    <input type="text" id="f-dep" placeholder="Ej: BOLÍVAR" style="text-transform:uppercase">
+    <input type="text" id="f-bbox" placeholder="bbox: xmin,ymin,xmax,ymax">
+    <button class="btn btn-primary" id="btn-query" onclick="runAnalysis()">⊞ Analizar municipio</button>
+  </div>
+  <div class="lp-sec">
+    <div class="lbl">Capas IDEAM</div>
+    <div style="font-size:11px;color:var(--txt2)">
+      <label style="display:flex;align-items:center;gap:5px;padding:2px 0;cursor:pointer"><input type="checkbox" id="il-base" checked> Base 100K</label>
+      <label style="display:flex;align-items:center;gap:5px;padding:2px 0;cursor:pointer"><input type="checkbox" id="il-tr10"> TR 10 años</label>
+      <label style="display:flex;align-items:center;gap:5px;padding:2px 0;cursor:pointer"><input type="checkbox" id="il-tr50" checked> TR 50 años</label>
+      <label style="display:flex;align-items:center;gap:5px;padding:2px 0;cursor:pointer"><input type="checkbox" id="il-tr100"> TR 100 años</label>
+    </div>
+  </div>
+  <div class="lp-sec">
+    <div class="lbl">Capas visibles</div>
+    <div class="ly-row" onclick="togLayer('cat')"><div class="ly-dot" style="background:var(--blue)"></div>Catastro IGAC<span class="ly-eye" id="eye-cat">👁</span></div>
+    <div class="ly-row" onclick="togLayer('amen')"><div class="ly-dot" style="background:var(--red)"></div>Amenaza inundación<span class="ly-eye" id="eye-amen">👁</span></div>
+    <div class="ly-row" onclick="togLayer('conflict')"><div class="ly-dot" style="background:var(--orange);border-radius:50%"></div>Predios en conflicto<span class="ly-eye" id="eye-conflict">👁</span></div>
+    <div class="ly-row" id="local-row" style="display:none" onclick="togLayer('local')"><div class="ly-dot" style="background:#7F77DD"></div><span id="local-name">Capa local</span><span class="ly-eye" id="eye-local">👁</span></div>
+  </div>
+  <div id="lp-stats">
+    <div class="lbl">Resumen</div>
+    <div id="stats-panel" style="font-size:11px;color:var(--txt3)">— Ejecuta un análisis —</div>
+  </div>
+</div>
+
+<!-- MAP -->
+<div id="map-wrap">
+  <div id="pot-map"></div>
+  <div class="map-badge">🔴 Amenaza alta &nbsp;🟡 Media &nbsp;🔵 Catastro &nbsp;🟠 Conflicto</div>
+</div>
+
+<!-- RIGHT -->
+<div id="rp">
+  <div class="tabs">
+    <button class="tab on" onclick="showTab('al')">Alertas<span id="al-cnt" style="color:var(--red);font-weight:600"></span></button>
+    <button class="tab" onclick="showTab('rpt')">Reporte</button>
+    <button class="tab" onclick="showTab('loc')">Local</button>
+    <button class="tab" onclick="showTab('ch')">Chat IA</button>
+  </div>
+
+  <!-- ALERTAS -->
+  <div id="tab-al" class="tc">
+    <div id="al-list" style="font-size:12px;color:var(--txt3);text-align:center;padding:24px 8px">
+      Ingresa un municipio y pulsa "Analizar" para ver las alertas normativas.
+    </div>
+  </div>
+
+  <!-- REPORTE -->
+  <div id="tab-rpt" class="tc" style="display:none">
+    <div id="rpt-content" style="font-size:11px;color:var(--txt3)">Ejecuta un análisis para generar el reporte.</div>
+    <div style="padding:6px 0;flex-shrink:0">
+      <button class="btn" onclick="exportReport()" style="font-size:11px">📄 Exportar HTML</button>
+    </div>
+  </div>
+
+  <!-- LOCAL -->
+  <div id="tab-loc" class="tc" style="display:none">
+    <div class="lbl" style="margin-bottom:6px">Cargar capa GeoJSON local</div>
+    <div class="upload-zone" onclick="document.getElementById('file-inp').click()">
+      <input type="file" id="file-inp" accept=".geojson,.json" style="display:none" onchange="loadLocal(event)">
+      📂 Clic para cargar GeoJSON
+    </div>
+    <div id="field-selector" style="display:none">
+      <div class="lbl" style="margin-bottom:4px">Campos para reporte</div>
+      <div class="field-list" id="field-list"></div>
+      <button class="btn" onclick="applyLocal()">✓ Aplicar capa</button>
+    </div>
+  </div>
+
+  <!-- CHAT -->
+  <div id="tab-ch" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+    <div id="chat-msgs">
+      <div class="msg-a">Hola. Analiza un municipio y pregúntame sobre los resultados, normativa del EOT o propuestas de ajuste.</div>
+    </div>
+    <div class="chat-in">
+      <input id="chat-inp" placeholder="Pregunta sobre el EOT..." onkeydown="if(event.key==='Enter')sendChat()">
+      <button onclick="sendChat()">↑</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- /body -->
+
+<div id="status">
+  <span id="stxt">Ingresa municipio, departamento y bbox, luego pulsa "Analizar municipio".</span>
+  <div id="prog-bar"></div>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@3/dist/maplibre-gl.js"></script>
+<script>
+// =====================================================================
+// CONFIGURACIÓN — apunta al backend Python
+// =====================================================================
+const API = 'http://localhost:8000';
+
+// Estado global
+const S = {
+  muni: null, dep: null, bbox: null,
+  result: null,
+  vis: { cat:1, amen:1, conflict:1, local:1 },
+  localGJ: null, localFields: [], selFields: [],
+  chatHistory: [],
+  contextMuni: {}
+};
+
+// =====================================================================
+// MAPA
+// =====================================================================
+let map, popup;
+function initMap() {
+  map = new maplibregl.Map({
+    container: 'pot-map',
+    style: { version:8, sources:{ osm:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,attribution:'© OSM'} }, layers:[{id:'osm',type:'raster',source:'osm'}] },
+    center: [-74, 4.5], zoom: 5
+  });
+  map.addControl(new maplibregl.NavigationControl({showCompass:false}), 'top-right');
+  popup = new maplibregl.Popup({ closeButton:false, closeOnClick:false, maxWidth:'220px' });
+}
+
+const SRC_IDS = ['catastro','amenazas','conflictos','local-src'];
+const LYR_IDS = ['cat-f','cat-l','amen-alta-f','amen-med-f','amen-l','local-f','local-l','cf-f','cf-l'];
+
+function clearMap() {
+  LYR_IDS.forEach(id => { if(map.getLayer(id)) map.removeLayer(id); });
+  SRC_IDS.forEach(id => { if(map.getSource(id)) map.removeSource(id); });
+  map.off('mouseenter','cat-f');
+  map.off('mouseleave','cat-f');
+}
+
+function renderMap(result) {
+  clearMap();
+  const cat = result.catastro_geojson || {type:'FeatureCollection',features:[]};
+  const amen = result.amenaza_geojson || {type:'FeatureCollection',features:[]};
+  const conf = result.conflictos_geojson || {type:'FeatureCollection',features:[]};
+  const local = S.localGJ || {type:'FeatureCollection',features:[]};
+
+  map.addSource('catastro', {type:'geojson', data:cat});
+  map.addSource('amenazas', {type:'geojson', data:amen});
+  map.addSource('conflictos', {type:'geojson', data:conf});
+  map.addSource('local-src', {type:'geojson', data:local});
+
+  map.addLayer({id:'amen-med-f',type:'fill',source:'amenazas',filter:['==',['get','_nivel'],'MEDIA'],paint:{'fill-color':'#EF9F27','fill-opacity':0.3}});
+  map.addLayer({id:'amen-alta-f',type:'fill',source:'amenazas',filter:['==',['get','_nivel'],'ALTA'],paint:{'fill-color':'#E24B4A','fill-opacity':0.28}});
+  map.addLayer({id:'amen-l',type:'line',source:'amenazas',paint:{'line-color':['case',['==',['get','_nivel'],'ALTA'],'#A32D2D','#854F0B'],'line-width':1.5}});
+  map.addLayer({id:'local-f',type:'fill',source:'local-src',paint:{'fill-color':'#7F77DD','fill-opacity':0.3}});
+  map.addLayer({id:'local-l',type:'line',source:'local-src',paint:{'line-color':'#3C3489','line-width':1.5}});
+  map.addLayer({id:'cat-f',type:'fill',source:'catastro',paint:{'fill-color':'#378ADD','fill-opacity':0.18}});
+  map.addLayer({id:'cat-l',type:'line',source:'catastro',paint:{'line-color':'#185FA5','line-width':0.5}});
+  if (conf.features.length > 0) {
+    map.addLayer({id:'cf-f',type:'fill',source:'conflictos',paint:{'fill-color':'#D85A30','fill-opacity':0.65}});
+    map.addLayer({id:'cf-l',type:'line',source:'conflictos',paint:{'line-color':'#4A1B0C','line-width':1.5}});
+  }
+
+  // Popup en catastro
+  map.on('mouseenter','cat-f', e => {
+    map.getCanvas().style.cursor = 'pointer';
+    const p = e.features[0].properties;
+    popup.setLngLat(e.lngLat).setHTML(
+      `<b>${p.numero_predial||'Predio '+p.objectid}</b>`+
+      (p.destinacion_economica?`<br>Dest: ${p.destinacion_economica}`:'')+
+      (p.zona?`<br>Zona: ${p.zona}`:'')+
+      (p.area_terreno?`<br>Área: ${Number(p.area_terreno).toLocaleString()} m²`:'')
+    ).addTo(map);
+  });
+  map.on('mouseleave','cat-f', () => { map.getCanvas().style.cursor=''; popup.remove(); });
+
+  applyVis();
+
+  // Fly to bbox
+  if (S.bbox) {
+    map.fitBounds([[S.bbox[0],S.bbox[1]],[S.bbox[2],S.bbox[3]]], {padding:40, duration:800});
+  }
+}
+
+const VIS_MAP = {
+  cat: ['cat-f','cat-l'],
+  amen: ['amen-alta-f','amen-med-f','amen-l'],
+  conflict: ['cf-f','cf-l'],
+  local: ['local-f','local-l']
+};
+function applyVis() {
+  Object.entries(VIS_MAP).forEach(([k,layers]) => {
+    const v = S.vis[k] ? 'visible' : 'none';
+    layers.forEach(id => { if(map.getLayer(id)) map.setLayoutProperty(id,'visibility',v); });
+  });
+}
+function togLayer(k) {
+  S.vis[k] = !S.vis[k];
+  const eye = document.getElementById('eye-'+k);
+  if(eye) eye.style.opacity = S.vis[k] ? '1' : '.3';
+  applyVis();
+}
+
+// =====================================================================
+// ANÁLISIS PRINCIPAL — llama al backend Python
+// =====================================================================
+async function runAnalysis() {
+  const mun = document.getElementById('f-mun').value.trim();
+  const dep = document.getElementById('f-dep').value.trim();
+  const bboxStr = document.getElementById('f-bbox').value.trim();
+
+  if (!mun || !dep) { alert('Ingresa municipio y departamento.'); return; }
+
+  let bbox;
+  if (bboxStr) {
+    bbox = bboxStr.split(',').map(Number);
+    if (bbox.length !== 4 || bbox.some(isNaN)) { alert('bbox inválido. Formato: xmin,ymin,xmax,ymax'); return; }
+  } else {
+    alert('Ingresa el bbox del municipio.\nEjemplo para Magangué: -74.65,9.10,-74.46,9.29');
+    return;
+  }
+
+  S.muni = mun; S.dep = dep; S.bbox = bbox;
+
+  const btn = document.getElementById('btn-query');
+  btn.disabled = true; btn.textContent = '⏳ Analizando...';
+  setStatus('Consultando servicios IGAC e IDEAM...', 15);
+
+  // Capas IDEAM seleccionadas
+  const capas = [];
+  if(document.getElementById('il-base').checked) capas.push('base_100k');
+  if(document.getElementById('il-tr10').checked) capas.push('tr_10');
+  if(document.getElementById('il-tr50').checked) capas.push('tr_50');
+  if(document.getElementById('il-tr100').checked) capas.push('tr_100');
+  if(!capas.length) capas.push('base_100k');
+
+  try {
+    setStatus('Esperando respuesta del backend Python (GeoPandas + PostGIS)...', 35);
+
+    const resp = await fetch(`${API}/api/analysis/run`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        municipio: mun,
+        departamento: dep,
+        bbox: bbox,
+        filtros_catastro: {},
+        capas_ideam: capas,
+        incluir_runap: false,
+        local_geojson: S.localGJ || null
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(err.detail || 'Error del servidor');
+    }
+
+    const result = await resp.json();
+    S.result = result;
+
+    // Actualizar contexto para el chat
+    S.contextMuni = {
+      municipio: result.municipio,
+      departamento: result.departamento,
+      total_predios: result.total_predios,
+      amenaza_alta: result.conteos.amenaza_alta || 0,
+      amenaza_media: result.conteos.amenaza_media || 0,
+      area_protegida: result.conteos.area_protegida || 0,
+      alertas_resumen: result.alertas.map(a => a.titulo+': '+a.descripcion).join(' | ')
+    };
+
+    setStatus('Renderizando mapa...', 75);
+    renderMap(result);
+    renderAlerts(result.alertas);
+    renderStats(result);
+    renderReport(result);
+
+    // Header pills
+    const realCount = Object.values(result.fuentes).filter(v=>v).length;
+    const pill = document.getElementById('mode-pill');
+    pill.textContent = realCount > 0 ? `Real (${realCount} servicios)` : 'Demo';
+    pill.className = 'pill ' + (realCount > 0 ? 'pill-green' : 'pill-blue');
+    document.getElementById('muni-pill').textContent = `📍 ${result.municipio}`;
+    document.getElementById('muni-pill').style.display = '';
+    document.getElementById('feat-count').textContent = `${result.total_predios.toLocaleString()} predios · ${result.conflictos_geojson.features.length} en conflicto`;
+
+    const alta = result.alertas.filter(a=>a.severidad==='ALTA').length;
+    setStatus(`✓ Análisis completo — ${result.total_predios} predios · ${result.total_amenaza_features} polígonos amenaza · ${result.conflictos_geojson.features.length} predios en conflicto`, 100);
+    showTab('al');
+
+  } catch(e) {
+    setStatus(`Error: ${e.message}`, 0);
+    document.getElementById('al-list').innerHTML = `<div style="color:var(--red);padding:12px;font-size:12px">⚠ Error al conectar con el backend:<br><b>${e.message}</b><br><br>¿Está corriendo el servidor?<br><code>uvicorn main:app --reload --port 8000</code></div>`;
+    showTab('al');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '↻ Re-analizar';
+  }
+}
+
+// =====================================================================
+// UI RENDERING
+// =====================================================================
+function renderAlerts(alertas) {
+  const alta = alertas.filter(a=>a.severidad==='ALTA').length;
+  document.getElementById('al-cnt').textContent = alta > 0 ? ` (${alta})` : '';
+  document.getElementById('al-list').innerHTML = alertas.map(a => `
+    <div class="al-item al-${a.severidad.toLowerCase()}">
+      <div class="al-t">${a.severidad==='ALTA'?'🔴':a.severidad==='MEDIA'?'🟡':'✅'} ${a.titulo}</div>
+      <div>${a.descripcion}</div>
+      ${a.norma_referencia ? `<div class="al-nr">${a.norma_referencia}</div>` : ''}
+      ${a.accion_recomendada ? `<div class="al-ac">→ ${a.accion_recomendada}</div>` : ''}
+    </div>`).join('');
+}
+
+function renderStats(result) {
+  const c = result.conteos;
+  document.getElementById('stats-panel').innerHTML = `
+    <div class="stat-row"><span>Total predios</span><span class="stat-v">${result.total_predios.toLocaleString()}</span></div>
+    <div class="stat-row"><span>Polígonos amenaza</span><span class="stat-v">${result.total_amenaza_features}</span></div>
+    <div class="stat-row"><span style="color:var(--red)">Amenaza alta</span><span class="stat-v" style="color:var(--red)">${c.amenaza_alta||0}</span></div>
+    <div class="stat-row"><span style="color:var(--amber)">Amenaza media</span><span class="stat-v" style="color:var(--amber)">${c.amenaza_media||0}</span></div>
+    <div class="stat-row"><span style="color:var(--orange)">En conflicto</span><span class="stat-v" style="color:var(--orange);font-weight:600">${result.conflictos_geojson.features.length}</span></div>
+    <div style="margin-top:8px">
+      ${Object.entries(result.fuentes).map(([k,v])=>`<div style="font-size:10px;color:${v?'var(--green)':'var(--amber)'};padding:1px 0">${v?'✓':'⚠'} ${k}</div>`).join('')}
+    </div>`;
+}
+
+function renderReport(result) {
+  const c = result.conteos;
+  const cat = result.catastro_geojson?.features || [];
+  const byDest = {};
+  cat.forEach(f => {
+    const d = f.properties.destinacion_economica || 'Sin clasificar';
+    byDest[d] = (byDest[d]||0) + 1;
+  });
+  document.getElementById('rpt-content').innerHTML = `
+    <div class="rpt-h">📋 ${result.municipio}, ${result.departamento}</div>
+    <div style="font-size:10px;color:var(--txt3);margin-bottom:6px">${new Date().toLocaleDateString('es-CO',{year:'numeric',month:'long',day:'numeric'})}</div>
+    <div class="rpt-h">Datos consultados</div>
+    <table class="rpt-table">
+      <tr><th>Fuente</th><th>Estado</th><th>Registros</th></tr>
+      <tr><td>IGAC ric_terreno</td><td>${result.fuentes.catastro?'✓ Real':'⚠ Demo'}</td><td>${result.total_predios}</td></tr>
+      <tr><td>IDEAM Amenaza</td><td>${Object.entries(result.fuentes).filter(([k,v])=>k.startsWith('ideam')&&v).length>0?'✓ Real':'⚠ Demo'}</td><td>${result.total_amenaza_features}</td></tr>
+    </table>
+    <div class="rpt-h">Predios por destinación</div>
+    <table class="rpt-table">
+      <tr><th>Destinación</th><th>Predios</th></tr>
+      ${Object.entries(byDest).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([d,n])=>`<tr><td>${d}</td><td>${n}</td></tr>`).join('')}
+    </table>
+    <div class="rpt-h">Análisis de amenaza</div>
+    <table class="rpt-table">
+      <tr><th>Nivel</th><th>Predios</th></tr>
+      <tr><td style="color:var(--red)">🔴 ALTA</td><td><b>${c.amenaza_alta||0}</b></td></tr>
+      <tr><td style="color:var(--amber)">🟡 MEDIA</td><td><b>${c.amenaza_media||0}</b></td></tr>
+    </table>
+    <div class="rpt-h">Alertas normativas</div>
+    ${result.alertas.map(a=>`<div style="margin-bottom:5px;padding:5px 7px;background:${a.severidad==='ALTA'?'var(--red-l)':a.severidad==='MEDIA'?'var(--amber-l)':'var(--green-l)'};border-radius:5px;font-size:10px"><b>${a.titulo}</b><br>${a.descripcion}</div>`).join('')}
+    <div style="margin-top:8px;padding:6px;background:var(--bg2);border-radius:5px;font-size:9px;color:var(--txt3)">Ley 388/1997 · Decreto 1077/2015 · Decreto 1232/2020 · Decreto 1807/2014 · Ley 2294/2023 art. 32</div>`;
+}
+
+// =====================================================================
+// CAPA LOCAL
+// =====================================================================
+function loadLocal(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const gj = JSON.parse(e.target.result);
+      S.localGJ = gj;
+      S.localFields = gj.features?.length ? Object.keys(gj.features[0].properties||{}) : [];
+      S.selFields = S.localFields.slice(0,6);
+      document.getElementById('local-name').textContent = file.name.replace(/\.[^.]+$/,'');
+      document.getElementById('local-row').style.display = 'flex';
+      renderFieldSelector();
+      document.getElementById('field-selector').style.display = 'block';
+      setStatus(`Capa "${file.name}" cargada — ${gj.features?.length||0} objetos.`);
+    } catch(err) { alert('Error al leer el GeoJSON: '+err.message); }
+  };
+  reader.readAsText(file);
+}
+
+function renderFieldSelector() {
+  document.getElementById('field-list').innerHTML = S.localFields.map(f=>`
+    <div class="fi">
+      <input type="checkbox" id="fld-${f}" ${S.selFields.includes(f)?'checked':''} onchange="toggleField('${f}',this.checked)">
+      <label for="fld-${f}">${f}</label>
+    </div>`).join('');
+}
+
+function toggleField(name, checked) {
+  if(checked) { if(!S.selFields.includes(name)) S.selFields.push(name); }
+  else { S.selFields = S.selFields.filter(f=>f!==name); }
+}
+
+function applyLocal() {
+  if (!map.getSource('local-src')) { setStatus('Primero ejecuta un análisis para ver la capa local en el mapa.'); return; }
+  map.getSource('local-src').setData(S.localGJ);
+  setStatus(`Capa local aplicada — ${S.localGJ.features?.length||0} objetos.`);
+}
+
+// =====================================================================
+// EXPORTAR REPORTE
+// =====================================================================
+function exportReport() {
+  if (!S.result) { alert('Ejecuta un análisis primero.'); return; }
+  const content = document.getElementById('rpt-content').innerHTML;
+  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Reporte EOT — ${S.muni}</title>
+<style>body{font-family:system-ui;max-width:900px;margin:0 auto;padding:24px;color:#111}
+table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px}
+th,td{padding:5px 8px;border:0.5px solid #ddd;text-align:left}th{background:#f5f5f5;font-weight:500}
+.rpt-h{font-size:13px;font-weight:600;margin:12px 0 5px;border-bottom:1px solid #ddd;padding-bottom:3px}
+</style></head><body>${content}</body></html>`;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([html],{type:'text/html'}));
+  a.download = `Reporte_EOT_${S.muni}_${new Date().toISOString().substring(0,10)}.html`;
+  a.click();
+}
+
+// =====================================================================
+// CHAT IA — llama al backend Python (Groq)
+// =====================================================================
+async function sendChat() {
+  const inp = document.getElementById('chat-inp');
+  const msg = inp.value.trim();
+  if (!msg) return;
+  inp.value = '';
+  const box = document.getElementById('chat-msgs');
+  box.innerHTML += `<div class="msg-u">${msg}</div>`;
+  const ld = document.createElement('div');
+  ld.className = 'msg-a'; ld.textContent = '…';
+  box.appendChild(ld); box.scrollTop = box.scrollHeight;
+  S.chatHistory.push({role:'user', content:msg});
+
+  try {
+    const resp = await fetch(`${API}/api/chat/ask`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        mensaje: msg,
+        contexto_municipio: S.contextMuni,
+        historial: S.chatHistory.slice(-8)
+      })
+    });
+    const data = await resp.json();
+    ld.textContent = data.respuesta;
+    S.chatHistory.push({role:'assistant', content:data.respuesta});
+  } catch(e) {
+    ld.textContent = 'Error al conectar con el backend.';
+  }
+  box.scrollTop = box.scrollHeight;
+}
+
+// =====================================================================
+// UI HELPERS
+// =====================================================================
+function showTab(id) {
+  const ids = ['al','rpt','loc','ch'];
+  document.querySelectorAll('.tabs .tab').forEach((t,i) => {
+    t.className = 'tab' + (ids[i]===id?' on':'');
+  });
+  ids.forEach(tid => {
+    const el = document.getElementById('tab-'+tid);
+    if (!el) return;
+    el.style.display = 'none';
+    if (el.classList.contains('tc')) el.style.display = tid===id ? 'block' : 'none';
+    else el.style.display = tid===id ? 'flex' : 'none';
+  });
+}
+
+function setStatus(msg, pct) {
+  document.getElementById('stxt').textContent = msg;
+  if (pct !== undefined) {
+    const p = document.getElementById('prog-bar');
+    p.style.width = (pct > 0 ? Math.min(pct, 100) : 0) + 'px';
+  }
+}
+
+// BOOT
+window.addEventListener('load', () => setTimeout(initMap, 100));
+</script>
+</body>
+</html>
