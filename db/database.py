@@ -10,6 +10,7 @@ engine = create_async_engine(
     pool_pre_ping=True,
     pool_size=10,
     max_overflow=20,
+    connect_args={"ssl": "require"} if "railway" in (settings.database_url or "") else {},
 )
 
 AsyncSessionLocal = async_sessionmaker(
